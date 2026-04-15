@@ -19,3 +19,19 @@ ggplot(grouped_policyautonomy, aes(x=average, y=policyautonomy)) + geom_point(al
   +     y="Political Autonomy")
 enpl_pa <- lm(policyautonomy ~ average, data = grouped_policyautonomy)
 summary(enpl_pa)
+ggplot(grouped_policyautonomy, aes(x=average, y=policyautonomy)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
+  +     title="Political Competition and Political Autonomy in India", x="Effective Number of Parties",
+  +     y="Political Autonomy")
+ggplot(data, aes(x=enpl, y=mov)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
+  +     title="Political Competition and Margin of Victory in India", x="Effective Number of Parties",
+  +     y="Margin of Victory")
+enpl_mov <- lm(mov ~ enpl, data = data)
+summary(enpl_mov)
+ggplot(data, aes(x=sop, y=mov)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
+  +     title="Strength of Opposition and Margin of Victory in India", x="Strength of Opposition",
+  +     y="Margin of Victory")
+sop_mov <- lm(mov ~ sop, data = data)
+summary(sop_mov)
+ggplot(data, aes(x=pr, y=RAI)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
+  +     title="Strength of Opposition and Margin of Victory in India", x="Strength of Opposition",
+  +     y="Margin of Victory")
