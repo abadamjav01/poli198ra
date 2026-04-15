@@ -35,3 +35,5 @@ summary(sop_mov)
 ggplot(data, aes(x=pr, y=RAI)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
   +     title="Strength of Opposition and Margin of Victory in India", x="Strength of Opposition",
   +     y="Margin of Victory")
+library(readxl)
+API_IND_DS2_en_excel_v2_2507 <- read_excel("~/Downloads/API_IND_DS2_en_excel_v2_2507.xls")
