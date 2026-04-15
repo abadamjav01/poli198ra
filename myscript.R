@@ -1,0 +1,14 @@
+democracy <- read.csv("/ameliabadamjav/Downloads/dataverse_files(1)/Conceptualizing and Measuring Subnational Democracy Across Indian States_raw")
+library(haven)
+Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_States_raw <- read_dta("Conceptualizing and Measuring Subnational Democracy Across Indian States_raw.dta")
+View(Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_States_raw)
+library(readxl)
+RAI_region_april_2021_final <- read_excel("~/Downloads/RAI_region-april-2021-final.xlsx")
+View(RAI_region_april_2021_final)
+rai = Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_States_raw
+democracy = rai
+rai = RAI_region_april_2021_final
+data = merge(rai, democracy, by = year)
+data = merge(rai, democracy, by = 'year')
+data
+savehistory("myscript.R")
