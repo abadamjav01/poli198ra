@@ -1,39 +1,88 @@
-democracy <- read.csv("/ameliabadamjav/Downloads/dataverse_files(1)/Conceptualizing and Measuring Subnational Democracy Across Indian States_raw")
-library(haven)
-Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_States_raw <- read_dta("Conceptualizing and Measuring Subnational Democracy Across Indian States_raw.dta")
-View(Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_States_raw)
-library(readxl)
-RAI_region_april_2021_final <- read_excel("~/Downloads/RAI_region-april-2021-final.xlsx")
-View(RAI_region_april_2021_final)
-rai = Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_States_raw
-democracy = rai
-rai = RAI_region_april_2021_final
-data = merge(rai, democracy, by = year)
-data
-savehistory("myscript.R")
-grouped_policyautonomy <- data
-grouped_policyautonomy %>% group_by(policyautonomy) %>% summarise(average = mean(enpl))
-grouped_policyautonomy <- grouped_policyautonomy %>% group_by(policyautonomy) %>% summarise(average = mean(enpl))
-ggplot(grouped_policyautonomy, aes(x=average, y=policyautonomy)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
-  +     title="Political Competition and Political Autonomy in India", x="Effective Number of Parties",
-  +     y="Political Autonomy")
-enpl_pa <- lm(policyautonomy ~ average, data = grouped_policyautonomy)
-summary(enpl_pa)
-ggplot(grouped_policyautonomy, aes(x=average, y=policyautonomy)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
-  +     title="Political Competition and Political Autonomy in India", x="Effective Number of Parties",
-  +     y="Political Autonomy")
-ggplot(data, aes(x=enpl, y=mov)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
-  +     title="Political Competition and Margin of Victory in India", x="Effective Number of Parties",
-  +     y="Margin of Victory")
-enpl_mov <- lm(mov ~ enpl, data = data)
-summary(enpl_mov)
-ggplot(data, aes(x=sop, y=mov)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
-  +     title="Strength of Opposition and Margin of Victory in India", x="Strength of Opposition",
-  +     y="Margin of Victory")
-sop_mov <- lm(mov ~ sop, data = data)
-summary(sop_mov)
-ggplot(data, aes(x=pr, y=RAI)) + geom_point(alpha=0.5) + geom_smooth(method="lm", se = FALSE) + labs(
-  +     title="Strength of Opposition and Margin of Victory in India", x="Strength of Opposition",
-  +     y="Margin of Victory")
-library(readxl)
-API_IND_DS2_en_excel_v2_2507 <- read_excel("~/Downloads/API_IND_DS2_en_excel_v2_2507.xls")
+pkgs <- c("haven", "dplyr", "tidyr", "ggplot2", "fixest", "modelsummary",
+          "readxl", "stringr", "scales")
+to_install <- pkgs[!pkgs %in% installed.packages()[, "Package"]]
+if (length(to_install)) install.packages(to_install, repos = "https://cloud.r-project.org")
+
+library(haven)        # read_dta()
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(fixest)       # feols() — fast OLS + fixed effects
+library(modelsummary) # publication-ready regression tables
+library(readxl)       # read_excel() for WDI (optional merge)
+library(stringr)
+library(scales)
+
+# Load subnational data
+dta_path <- "Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_States_raw.dta"
+df_raw <- read_dta(dta_path)
+
+glimpse(df_raw)
+# Key variables:
+#   mov         – margin of victory (0–1), DV
+#   enpl        – effective number of parties
+#   sop         – ruling-party vote share
+#   pr          – President's Rule dummy (0/1)
+#   nbdeath     – election-related deaths
+#   prc_consta  – % uncontested constituencies
+#   ut          – union territory dummy (0/1)
+#   year        – election year
+#   stateut     – state/UT name
+
+# 2. Variables
+df <- df_raw %>%
+  mutate(
+    year       = as.integer(year),
+    log_nbdeath = log1p(nbdeath),          # log(1 + deaths) — right-skewed
+    year_c     = year - mean(year, na.rm = TRUE),  # center year for interpretation
+    pr         = as.integer(pr),
+    ut         = as.integer(ut),
+    stateut    = as.factor(stateut)
+  ) %>%
+  filter(!is.na(mov))                      # drop the 1 obs with missing DV
+
+cat("Observations after dropping missing DV:", nrow(df), "\n")
+cat("Year range:", min(df$year), "–", max(df$year), "\n")
+cat("States:", nlevels(df$stateut), "\n\n")
+
+# 3. Statistics
+desc_vars <- c("mov", "enpl", "sop", "pr", "log_nbdeath", "prc_consta", "ut", "year_c")
+
+cat("=== Descriptive Statistics ===\n")
+df %>%
+  select(all_of(desc_vars)) %>%
+  summary() %>%
+  print()
+
+annual_means <- df %>%
+  group_by(year) %>%
+  summarise(avg_mov = mean(mov, na.rm = TRUE), .groups = "drop")
+
+# 4. Models 
+
+# Predictors (same across all models)
+xvars <- c("enpl", "sop", "pr", "log_nbdeath", "prc_consta", "ut", "year_c")
+
+# Model 1: Pooled OLS (no fixed effects)
+m1 <- feols(mov ~ enpl + sop + pr + log_nbdeath + prc_consta + ut + year_c,
+            data = df, vcov = "HC1")   # HC1 = heteroskedasticity-robust SE
+
+# Model 2: Fixed  OLS
+m2 <- feols(mov ~ enpl + sop + pr + log_nbdeath + prc_consta + ut + year_c
+            | stateut,
+            data = df, vcov = "HC1")
+
+# Model 3: Two-way Fixed Effects (state + year)
+m3 <- feols(mov ~ enpl + sop + pr + log_nbdeath + prc_consta + ut
+            | stateut + year,
+            data = df, vcov = "HC1")
+
+# Print results
+cat("\n=== Model 1: Pooled OLS ===\n")
+summary(m1)
+
+cat("\n=== Model 2: State Fixed Effects ===\n")
+summary(m2)
+
+cat("\n=== Model 3: Two-way FE (state + year) ===\n")
+summary(m3)
