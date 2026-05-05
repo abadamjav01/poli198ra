@@ -18,16 +18,6 @@ dta_path <- "Conceptualizing_and_Measuring_Subnational_Democracy_Across_Indian_S
 df_raw <- read_dta(dta_path)
 
 glimpse(df_raw)
-# Key variables:
-#   mov         – margin of victory (0–1), DV
-#   enpl        – effective number of parties
-#   sop         – ruling-party vote share
-#   pr          – President's Rule dummy (0/1)
-#   nbdeath     – election-related deaths
-#   prc_consta  – % uncontested constituencies
-#   ut          – union territory dummy (0/1)
-#   year        – election year
-#   stateut     – state/UT name
 
 # 2. Variables
 df <- df_raw %>%
@@ -56,7 +46,17 @@ df %>%
 
 annual_means <- df %>%
   group_by(year) %>%
-  summarise(avg_mov = mean(mov, na.rm = TRUE), .groups = "drop")
+  summarise(avg_mov = mean(mov), .groups = "drop")
+
+state_enpl <- df %>%
+  group_by(stateut) %>%
+  summarise(
+    mean_enpl = mean(enpl),
+    sd_enpl   = sd(enpl),
+    n         = n(),
+    .groups   = "drop"
+  ) 
+
 
 # 4. Models 
 
@@ -86,3 +86,39 @@ summary(m2)
 
 cat("\n=== Model 3: Two-way FE (state + year) ===\n")
 summary(m3)
+
+# 5. Summary Table (Regressions)
+coef_rename <- c(
+  "enpl"        = "Eff. no. of parties (ENPL)",
+  "sop"         = "Ruling party vote share (SOP)",
+  "pr"          = "President's Rule",
+  "log_nbdeath" = "Log(1 + election deaths)",
+  "prc_consta"  = "% uncontested constituencies",
+  "ut"          = "Union territory",
+  "year_c"      = "Year (centred)"
+) # renaming coefficients for model summary
+
+modelsummary(
+  list("Pooled OLS" = m1, "State FE" = m2, "State + Year FE" = m3),
+  coef_rename   = coef_rename,
+  title         = "Predictors of Margin of Victory — Indian State Elections (1985–2013)",
+  output        = "regression_table.txt"
+) # saved results in a regression_table
+
+# 6. Plots
+# plot for average margin of victory
+avg_mov <- ggplot(annual_means, aes(x = year, y = avg_mov)) + 
+  geom_point() + 
+  geom_smooth() + 
+  labs(
+    title = "Average margin of victory across Indian state elections", 
+    x = "Election year", 
+    y = "Avg. margin of victory"
+  ) + 
+  theme_minimal() 
+
+# plot for mean enpl by state
+mean_enpl <- ggplot(state_enpl, aes(x = mean_enpl, y = stateut)) + 
+  geom_point() # need to sort by mean_enpl and work on labels
+
+
