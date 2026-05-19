@@ -88,20 +88,20 @@ cat("\n=== Model 3: Two-way FE (state + year) ===\n")
 summary(m3)
 
 # 5. Summary Table (Regressions)
-coef_rename <- c(
-  "enpl"        = "Eff. no. of parties (ENPL)",
-  "sop"         = "Ruling party vote share (SOP)",
-  "pr"          = "President's Rule",
-  "log_nbdeath" = "Log(1 + election deaths)",
-  "prc_consta"  = "% uncontested constituencies",
-  "ut"          = "Union territory",
-  "year_c"      = "Year (centred)"
+row <- data.frame(
+  "Coefficients" = c("State FE", "Year FE"),
+  "Pooled OLS"      = c("No",  "No"),
+  "State FE"        = c("Yes", "No"),
+  "State + Year FE" = c("Yes", "Yes")
 ) # renaming coefficients for model summary
+
+attr(row, "position") <- c(17, 18)
 
 modelsummary(
   list("Pooled OLS" = m1, "State FE" = m2, "State + Year FE" = m3),
-  coef_rename   = coef_rename,
+  add_rows      = row,
   title         = "Predictors of Margin of Victory — Indian State Elections (1985–2013)",
+  gof_map       = c("nobs", "r.squared", "adj.r.squared", "rmse"),
   output        = "regression_table.txt"
 ) # saved results in a regression_table
 
@@ -122,3 +122,66 @@ mean_enpl <- ggplot(state_enpl, aes(x = mean_enpl, y = stateut)) +
   geom_point() # need to sort by mean_enpl and work on labels
 
 
+# Plots for the different economic indicators
+api_df <- read_excel("~/Downloads/api.xlsx", col_names = FALSE)
+
+# 3 different indicators
+rm(to_df, df_gdp, df_infant, df_unemp, df_all)
+
+years <- as.integer(as.numeric(api_df[1, -1]))
+
+df_gdp    <- data.frame(year = years, value = gdp,    indicator = "GDP per capita (US$)")[!is.na(gdp), ]
+df_infant <- data.frame(year = years, value = infant, indicator = "Infant mortality (per 1,000)")[!is.na(infant), ]
+df_unemp  <- data.frame(year = years, value = unemp,  indicator = "Unemployment")[!is.na(unemp), ]
+
+normalize <- function(x) (x - min(x)) / (max(x) - min(x))
+
+df_gdp$nor <- normalize(df_gdp$value)
+df_infant$nor <- normalize(df_infant$value)
+df_unemp$nor <- normalize(df_unemp$value)
+
+df_all <- rbind(df_gdp, df_infant, df_unemp)
+
+colors <- c(
+  "GDP per capita (US$)"         = "red",
+  "Infant mortality (per 1,000)" = "blue",
+  "Unemployment"                 = "yellow" 
+)
+
+# Normalized
+ggplot(df_all, aes(x = year, y = nor, color = indicator)) +
+  geom_line() +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_color_manual(values = colors) + 
+  labs(title = "India development indicators - normalized (0-1)", 
+       x = NULL, y = "Normalized value") +
+  theme(legend.position = "bottom")
+
+ggplot(df_all, aes(x = year, y = value, color = indicator, fill = indicator)) +
+  geom_area() +
+  geom_line() +
+  facet_wrap(~ indicator, scales = "free_y", ncol = 3) +
+  scale_color_manual(values = colors) +
+  scale_fill_manual(values = colors) +
+  labs(title = "India development indicators - facet_wrap",
+       x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# GDP per Capita
+ggplot(df_gdp, aes(x = year, y = value)) +
+  geom_area(fill = "steelblue") + geom_line() + 
+  labs(title = "GDP per Capita — India", x = NULL, y = "Current US$") +
+  theme_minimal()
+
+# Infant Mortality
+ggplot(df_infant, aes(x = year, y = value)) +
+  geom_area(fill = "steelblue") + geom_line() + 
+  labs(title = "Infant Mortality — India", x = NULL, y = "Per 1,000 live births") +
+  theme_minimal()
+
+# Unemployment Rate
+ggplot(df_unemp, aes(x = year, y = value)) +
+  geom_area(fill = "steelblue") + geom_line() + 
+  labs(title = "Unemployment — India", x = NULL, y = "% of labor force") +
+  theme_minimal()
