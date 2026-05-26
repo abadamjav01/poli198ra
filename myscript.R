@@ -132,7 +132,7 @@ years <- as.integer(as.numeric(api_df[1, -1]))
 
 df_gdp    <- data.frame(year = years, value = gdp,    indicator = "GDP per capita (US$)")[!is.na(gdp), ]
 df_infant <- data.frame(year = years, value = infant, indicator = "Infant mortality (per 1,000)")[!is.na(infant), ]
-df_unemp  <- data.frame(year = years, value = unemp,  indicator = "Unemployment")[!is.na(unemp), ]
+df_unemp  <- data.frame(year = years, value = unemp,  indicator = "Unemployment (%)")[!is.na(unemp), ]
 
 normalize <- function(x) (x - min(x)) / (max(x) - min(x))
 
@@ -140,12 +140,11 @@ df_gdp$nor <- normalize(df_gdp$value)
 df_infant$nor <- normalize(df_infant$value)
 df_unemp$nor <- normalize(df_unemp$value)
 
-df_all <- rbind(df_gdp, df_infant, df_unemp)
+df_all <- rbind(df_gdp, df_infant)
 
 colors <- c(
   "GDP per capita (US$)"         = "red",
-  "Infant mortality (per 1,000)" = "blue",
-  "Unemployment"                 = "yellow" 
+  "Infant mortality (per 1,000)" = "blue"
 )
 
 # Normalized
@@ -157,6 +156,7 @@ ggplot(df_all, aes(x = year, y = nor, color = indicator)) +
        x = NULL, y = "Normalized value") +
   theme(legend.position = "bottom")
 
+# Facet Wrap
 ggplot(df_all, aes(x = year, y = value, color = indicator, fill = indicator)) +
   geom_area() +
   geom_line() +
