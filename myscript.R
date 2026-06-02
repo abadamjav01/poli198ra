@@ -1,5 +1,5 @@
 pkgs <- c("haven", "dplyr", "tidyr", "ggplot2", "fixest", "modelsummary",
-          "readxl", "stringr", "scales")
+          "readxl", "stringr", "scales", "gt")
 to_install <- pkgs[!pkgs %in% installed.packages()[, "Package"]]
 if (length(to_install)) install.packages(to_install, repos = "https://cloud.r-project.org")
 
@@ -102,8 +102,11 @@ modelsummary(
   add_rows      = row,
   title         = "Predictors of Margin of Victory — Indian State Elections (1985–2013)",
   gof_map       = c("nobs", "r.squared", "adj.r.squared", "rmse"),
-  output        = "regression_table.txt"
-) # saved results in a regression_table
+  output        = "gt",
+  gof_omit      = "rmse|RMSE"
+) 
+
+gtsave(ms, "table.pdf") #saved regression table as a pdf
 
 # 6. Plots
 # plot for average margin of victory
@@ -185,3 +188,42 @@ ggplot(df_unemp, aes(x = year, y = value)) +
   geom_area(fill = "steelblue") + geom_line() + 
   labs(title = "Unemployment — India", x = NULL, y = "% of labor force") +
   theme_minimal()
+
+# Residuals vs Fitted
+m1 <- feols(mov ~ enpl + sop + pr + log_nbdeath + prc_consta + ut + year_c,
+            data = df, vcov = "HC1")
+
+m2 <- feols(mov ~ enpl + sop + pr + log_nbdeath + prc_consta + ut + year_c
+            | stateut,
+            data = df, vcov = "HC1")
+
+m3 <- feols(mov ~ enpl + sop + pr + log_nbdeath + prc_consta + ut
+            stateut + year,
+            data = df, vcov = "HC1")
+
+# Residuals vs Fitted
+
+# M1 
+plot(m1$fitted.values, m1$residuals,
+     main = "Residuals vs Fitted - M1",
+     xlab = "Fitted values",
+     ylab = "Residuals"
+     )
+abline(h = 0, col = "red", lty = 2)
+
+# M2
+plot(m2$fitted.values, m2$residuals,
+     main = "Residuals vs Fitted - M2",
+     xlab = "Fitted values",
+     ylab = "Residuals"
+     )
+abline(h = 0, col = "red", lty = 2)
+
+
+# M3
+plot(m3$fitted.values, m3$residuals,
+     main = "Residuals vs Fitted - M3",
+     xlab = "Fitted values",
+     ylab = "Residuals"
+     )
+abline(h = 0, col = "red", lty = 2)
