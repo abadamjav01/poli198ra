@@ -61,7 +61,15 @@ state_enpl <- df %>%
 # 4. Models 
 
 # Predictors (same across all models)
-xvars <- c("enpl", "sop", "pr", "log_nbdeath", "prc_consta", "ut", "year_c")
+coef_rename <- c(
+  "enpl"       = "Effective number of parties", 
+  "sop"         = "Ruling party vote share", 
+  "pr"          = "President's rule", 
+  "log_nbdeath" = "Electoral violence (log deaths)", 
+  "prc_consta"  = "% uncontested constituencies", 
+  "ut"          = "Union territory", 
+  "year_c"      = "Year (centred)"
+  )
 
 # Model 1: Pooled OLS (no fixed effects)
 m1 <- feols(mov ~ enpl + sop + pr + log_nbdeath + prc_consta + ut + year_c,
@@ -99,6 +107,7 @@ attr(row, "position") <- c(17, 18)
 
 modelsummary(
   list("Pooled OLS" = m1, "State FE" = m2, "State + Year FE" = m3),
+  coef_rename   = coef_rename, 
   add_rows      = row,
   title         = "Predictors of Margin of Victory — Indian State Elections (1985–2013)",
   gof_map       = c("nobs", "r.squared", "adj.r.squared", "rmse"),
